@@ -1,0 +1,10 @@
+### Get the OAuth access token
+
+@CODE=<insert here>
+@STATE=<insert here>
+
+curl --location --request POST https://api.sparebank1.no/oauth/token --header 'Content-Type: application/x-www-form-urlencoded' --data "client_id={{$dotenv CLIENT_ID}}" --data "client_secret={{$dotenv CLIENT_SECRET}}" --data "code={{CODE}}" --data 'grant_type=authorization_code' --data "state={{STATE}}" --data "redirect_uri=$http://localhost"
+
+
+### Refresh token
+curl --location --request POST https://api.sparebank1.no/oauth/token --header 'Content-Type: application/x-www-form-urlencoded' --data "client_id={{$dotenv CLIENT_ID}}" --data "client_secret={{$dotenv CLIENT_SECRET}}" --data "refresh_token={{$dotenv REFRESH_TOKEN}}" --data 'grant_type=refresh_token'

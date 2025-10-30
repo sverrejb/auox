@@ -1,0 +1,3 @@
+### Test that secrets load correctly
+GET https://postman-echo.com/get?toksecreten={{$dotenv CLIENT_SECRET}}&id={{$dotenv CLIENT_ID}}
+
