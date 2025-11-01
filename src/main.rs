@@ -1,19 +1,21 @@
-use std::io;
 use crossterm::{
     event::{self, Event, KeyCode},
-    terminal::{disable_raw_mode, enable_raw_mode},
+    execute,
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{
-    backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, List, ListItem, ListState},
-    Terminal,
-};
+use std::io;
 
-use crossterm::{execute, terminal::{EnterAlternateScreen, LeaveAlternateScreen}};
+use ratatui::{Terminal, backend::CrosstermBackend, widgets::ListState};
+
+mod auth;
+mod config;
+mod ui;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = config::get_config();
+
+    auth::auth(config.client_id);
+
     // Setup terminal
     enable_raw_mode()?;
     execute!(io::stdout(), EnterAlternateScreen)?;
@@ -22,38 +24,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // Our list of names
-    let names = vec!["Alice", "Bob", "Charlie", "Diana", "Eve", "Frank"];
+    let names: Vec<&str> = vec!["Norma", "Bob", "Charlie", "Diana", "Eve", "Frank"];
 
     // Track selected item
     let mut state = ListState::default();
     state.select(Some(0));
 
     loop {
-        terminal.draw(|f| {
-            // Layout
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Percentage(100)].as_ref())
-                .split(f.area());
-
-            // Convert names to ListItems
-            let items: Vec<ListItem> = names
-                .iter()
-                .map(|n| ListItem::new(n.to_string()))
-                .collect();
-
-            // Create the List widget
-            let list = List::new(items)
-                .block(Block::default().borders(Borders::ALL).title("Names"))
-                .highlight_style(
-                    Style::default()
-                        .bg(Color::Blue)
-                        .fg(Color::White)
-                        .add_modifier(Modifier::BOLD),
-                );
-
-            f.render_stateful_widget(list, chunks[0], &mut state.clone());
-        })?;
+        ui::draw(&mut terminal, &mut state, &names);
 
         // Handle input
         if event::poll(std::time::Duration::from_millis(100))? {
