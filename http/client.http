@@ -1,10 +1,17 @@
 ### Get the OAuth access token
+# @name auth
 
-@CODE=<insert here>
-@STATE=<insert here>
+@CODE=3d4671bfa60840c8a8bae22292d2f67b
+@STATE=1226754
 
 curl --location --request POST https://api.sparebank1.no/oauth/token --header 'Content-Type: application/x-www-form-urlencoded' --data "client_id={{$dotenv CLIENT_ID}}" --data "client_secret={{$dotenv CLIENT_SECRET}}" --data "code={{CODE}}" --data 'grant_type=authorization_code' --data "state={{STATE}}" --data "redirect_uri=$http://localhost"
 
 
 ### Refresh token
-curl --location --request POST https://api.sparebank1.no/oauth/token --header 'Content-Type: application/x-www-form-urlencoded' --data "client_id={{$dotenv CLIENT_ID}}" --data "client_secret={{$dotenv CLIENT_SECRET}}" --data "refresh_token={{$dotenv REFRESH_TOKEN}}" --data 'grant_type=refresh_token'
+# @name refresh
+@refresh_token={{auth.response.body.refresh_token}}
+curl --location --request POST https://api.sparebank1.no/oauth/token --header 'Content-Type: application/x-www-form-urlencoded' --data "client_id={{$dotenv CLIENT_ID}}" --data "client_secret={{$dotenv CLIENT_SECRET}}" --data "refresh_token={{refresh_token}}" --data 'grant_type=refresh_token'
+
+### Hello world
+@access_token = {{auth.response.body.access_token}}
+curl https://api.sparebank1.no/common/helloworld --header "Authorization: Bearer {{ access_token }}" --header 'Accept: application/vnd.sparebank1.v1+json; charset=utf-8'
