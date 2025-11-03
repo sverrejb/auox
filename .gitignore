@@ -22,7 +22,7 @@ target
 
 .env
 login.http
-
+/tokens
 
 # Added by cargo
 

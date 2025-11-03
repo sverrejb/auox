@@ -10,6 +10,7 @@ use ratatui::{Terminal, backend::CrosstermBackend, widgets::ListState};
 mod auth;
 mod config;
 mod ui;
+mod models;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = config::get_config();
