@@ -48,29 +48,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 match key.code {
                     KeyCode::Char('q') => break,
                     KeyCode::Down => {
-                        let i = match state.selected() {
-                            Some(i) => {
-                                if i >= accounts.len() - 1 {
-                                    0
-                                } else {
-                                    i + 1
-                                }
-                            }
-                            None => 0,
-                        };
+                        let i = state.selected().map_or(0, |i| (i + 1) % accounts.len());
                         state.select(Some(i));
                     }
                     KeyCode::Up => {
-                        let i = match state.selected() {
-                            Some(i) => {
-                                if i == 0 {
-                                    accounts.len() - 1
-                                } else {
-                                    i - 1
-                                }
-                            }
-                            None => 0,
-                        };
+                        let i = state
+                            .selected()
+                            .map_or(0, |i| (i + accounts.len() - 1) % accounts.len());
                         state.select(Some(i));
                     }
                     _ => {}
