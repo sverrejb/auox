@@ -1,4 +1,4 @@
-use std::io::Stdout;
+use std::{io::Stdout, time::Duration};
 
 use ratatui::{
     Terminal,
@@ -7,6 +7,7 @@ use ratatui::{
     style::{Color, Modifier, Style},
     widgets::{Block, Borders, Paragraph, Row, Table, TableState},
 };
+use tachyonfx::EffectManager;
 
 use crate::models::Account;
 
@@ -15,13 +16,17 @@ pub fn draw(
     state: &mut TableState,
     accounts: &Vec<Account>,
     show_balance: &bool,
+    effects: &mut EffectManager<()>,
+    elapsed: Duration,
 ) {
-    let _ = terminal.draw(|f| {
+    let _ = terminal.draw(|frame| {
         // Layout with table and help bar
+        let frame_area = frame.area();
+
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(0), Constraint::Length(3)].as_ref())
-            .split(f.area());
+            .split(frame_area);
 
         // Create header row
         let header = Row::new(vec!["Account Name", "Balance", "Account Number", "Owner"]).style(
@@ -70,7 +75,7 @@ pub fn draw(
             )
             .highlight_symbol("💰 ");
 
-        f.render_stateful_widget(table, chunks[0], state);
+        frame.render_stateful_widget(table, chunks[0], state);
 
         // Help bar with commands
         let help_text = "Commands: [q] Quit | [b] Toggle Balance | [↑/↓] Navigate";
@@ -78,6 +83,7 @@ pub fn draw(
             .block(Block::default().borders(Borders::ALL))
             .style(Style::default().fg(Color::Cyan));
 
-        f.render_widget(help, chunks[1]);
+        frame.render_widget(help, chunks[1]);
+        effects.process_effects(elapsed.into(), frame.buffer_mut(), frame_area);
     });
 }

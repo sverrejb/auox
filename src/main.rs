@@ -4,9 +4,9 @@ use crossterm::{
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use log::debug;
-use std::io;
+use std::{io, time::Instant};
 
-use ratatui::{Terminal, backend::CrosstermBackend, widgets::TableState};
+use ratatui::{Terminal, backend::CrosstermBackend, style::Color, widgets::TableState};
 
 use crate::{fileio::read_access_token_file, models::Account};
 
@@ -15,6 +15,8 @@ mod auth;
 mod fileio;
 mod models;
 mod ui;
+
+use tachyonfx::{EffectManager, Interpolation, fx};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logger (off by default, enable with RUST_LOG=debug)
@@ -41,8 +43,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut show_balance = false;
     state.select(Some(0));
 
+    let mut effects: EffectManager<()> = EffectManager::default();
+
+    // Add a simple fade-in effect
+    let fx = fx::fade_to(Color::Cyan, Color::Gray, (1_000, Interpolation::SineIn));
+    effects.add_effect(fx);
+
+    let mut last_frame = Instant::now();
+
     loop {
-        ui::draw(&mut terminal, &mut state, &accounts, &show_balance);
+        let elapsed = last_frame.elapsed();
+        last_frame = Instant::now();
+
+        ui::draw(
+            &mut terminal,
+            &mut state,
+            &accounts,
+            &show_balance,
+            &mut effects,
+            elapsed,
+        );
 
         // Handle input
         if event::poll(std::time::Duration::from_millis(100))? {
@@ -59,9 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .map_or(0, |i| (i + accounts.len() - 1) % accounts.len());
                         state.select(Some(i));
                     }
-                    KeyCode::Char('b') => {
-                        show_balance = !show_balance
-                    }
+                    KeyCode::Char('b') => show_balance = !show_balance,
                     _ => {}
                 }
             }
