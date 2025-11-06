@@ -19,14 +19,17 @@ pub struct Account {
     pub balance: f64,
     pub available_balance: f64,
     pub currency_code: String,
-    pub owner: Owner,
+    pub owner: Option<Owner>,
     pub product_type: String,
     #[serde(rename = "type")]
     pub type_field: String,
-    pub product_id: String,
-    pub description_code: String,
+    pub product_id: Option<String>,
+    pub description_code: Option<String>,
     pub disposal_role: bool,
     pub account_properties: AccountProperties,
+    pub credit_card_credit_limit: Option<f64>,
+    #[serde(rename = "creditCardAccountID")]
+    pub credit_card_account_id: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

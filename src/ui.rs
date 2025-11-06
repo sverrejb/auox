@@ -43,7 +43,9 @@ pub fn draw(
                     acc.name.clone(),
                     balance,
                     acc.account_number.clone(),
-                    acc.owner.name.clone(),
+                    acc.owner
+                        .as_ref()
+                        .map_or_else(|| "N/A".to_string(), |o| o.name.clone()),
                 ])
             })
             .collect();

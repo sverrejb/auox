@@ -6,7 +6,7 @@ pub fn get_accounts(access_token: String) -> AccountData {
     let client = Client::new();
 
     let account_response = client
-        .get("https://api.sparebank1.no/personal/banking/accounts")
+        .get("https://api.sparebank1.no/personal/banking/accounts?includeCreditCardAccounts=true")
         .header("Authorization", format!("Bearer {}", access_token))
         .header(
             "Accept",
