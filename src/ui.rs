@@ -5,7 +5,7 @@ use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Paragraph, Row, Table, TableState},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState},
 };
 use tachyonfx::EffectManager;
 
@@ -14,7 +14,7 @@ use crate::models::Account;
 pub fn draw(
     terminal: &mut Terminal<CrosstermBackend<&mut Stdout>>,
     state: &mut TableState,
-    accounts: &Vec<Account>,
+    accounts: &[Account],
     show_balance: &bool,
     effects: &mut EffectManager<()>,
     elapsed: Duration,
@@ -25,7 +25,7 @@ pub fn draw(
 
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Min(0), Constraint::Length(3)].as_ref())
+            .constraints([Constraint::Min(0), Constraint::Length(3)])
             .split(frame_area);
 
         // Create header row
@@ -39,18 +39,19 @@ pub fn draw(
         let rows: Vec<Row> = accounts
             .iter()
             .map(|acc| {
-                let mut balance = "".to_string();
-                if *show_balance {
-                    balance = format!("{:.2}", acc.balance);
-                }
+                // Only allocate balance string when showing it
+                let balance = if *show_balance {
+                    format!("{:.2}", acc.balance)
+                } else {
+                    String::new()
+                };
 
+                // Use borrowed data where possible, owned for local data
                 Row::new(vec![
-                    acc.name.clone(),
-                    balance,
-                    acc.account_number.clone(),
-                    acc.owner
-                        .as_ref()
-                        .map_or_else(|| "N/A".to_string(), |o| o.name.clone()),
+                    Cell::from(acc.name.as_str()),
+                    Cell::from(balance),
+                    Cell::from(acc.account_number.as_str()),
+                    Cell::from(acc.owner.as_ref().map(|o| o.name.as_str()).unwrap_or("N/A")),
                 ])
             })
             .collect();
