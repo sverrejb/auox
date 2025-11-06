@@ -16,7 +16,10 @@ mod fileio;
 mod models;
 mod ui;
 
-use tachyonfx::{EffectManager, Interpolation, fx};
+use tachyonfx::{
+    EffectManager, Interpolation, Motion,
+    fx::{self, Direction},
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logger (off by default, enable with RUST_LOG=debug)
@@ -44,7 +47,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Add a simple fade-in effect
     let fx = fx::fade_to(Color::Cyan, Color::Gray, (1_000, Interpolation::SineIn));
-    effects.add_effect(fx);
+    let slide_fx = fx::slide_in(
+        Motion::UpToDown,
+        800,
+        0,
+        Color::from_u32(0x0000ff),
+        (1000, Interpolation::Linear),
+    );
+    //effects.add_effect(fx);
+    effects.add_effect(slide_fx);
 
     let mut last_frame = Instant::now();
 
