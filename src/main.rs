@@ -4,9 +4,12 @@ use crossterm::{
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use log::debug;
-use std::{io, time::Instant};
+use std::{
+    io,
+    time::{Duration, Instant},
+};
 
-use ratatui::{Terminal, backend::CrosstermBackend, style::Color, widgets::TableState};
+use ratatui::{Terminal, backend::CrosstermBackend, widgets::TableState};
 
 use crate::{fileio::read_access_token_file, models::Account};
 
@@ -17,8 +20,8 @@ mod models;
 mod ui;
 
 use tachyonfx::{
-    EffectManager, Interpolation, Motion,
-    fx::{self, Direction},
+    EffectManager, Interpolation,
+    fx::{self},
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -46,18 +49,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut effects: EffectManager<()> = EffectManager::default();
 
     // Add a simple fade-in effect
-    let fx = fx::fade_to(Color::Cyan, Color::Gray, (1_000, Interpolation::SineIn));
-    let slide_fx = fx::slide_in(
-        Motion::UpToDown,
-        800,
-        0,
-        Color::from_u32(0x0000ff),
-        (1000, Interpolation::Linear),
-    );
-    //effects.add_effect(fx);
-    effects.add_effect(slide_fx);
+    let coalesce_in = fx::coalesce((500, Interpolation::QuintIn));
+    effects.add_effect(coalesce_in);
 
     let mut last_frame = Instant::now();
+    let mut exiting = false;
+    let mut exit_start_time: Option<Instant> = None;
+    let exit_duration = Duration::from_millis(500); // Match dissolve duration
 
     loop {
         let elapsed = last_frame.elapsed();
@@ -76,7 +74,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if event::poll(std::time::Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
-                    KeyCode::Char('q') => break,
+                    KeyCode::Char('q') => {
+                        if !exiting {
+                            // Trigger dissolve effect on exit
+                            effects.add_effect(fx::dissolve((500, Interpolation::QuintIn)));
+                            exiting = true;
+                            exit_start_time = Some(Instant::now());
+                        }
+                    }
                     KeyCode::Down => {
                         let i = state.selected().map_or(0, |i| (i + 1) % accounts.len());
                         state.select(Some(i));
@@ -89,6 +94,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     KeyCode::Char('b') => show_balance = !show_balance,
                     _ => {}
+                }
+            }
+        }
+
+        // If exiting and dissolve effect is done, break the loop
+        if exiting {
+            if let Some(start_time) = exit_start_time {
+                if start_time.elapsed() >= exit_duration {
+                    break;
                 }
             }
         }
