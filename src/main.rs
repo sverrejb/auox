@@ -55,7 +55,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut last_frame = Instant::now();
     let mut exiting = false;
     let mut exit_start_time: Option<Instant> = None;
-    let exit_duration = Duration::from_millis(500); // Match dissolve duration
+    let exit_duration = Duration::from_millis(500); 
+    let mut show_menu = false;
 
     loop {
         let elapsed = last_frame.elapsed();
@@ -66,6 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &mut state,
             &accounts,
             &show_balance,
+            &show_menu,
             &mut effects,
             elapsed,
         );
@@ -92,6 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .map_or(0, |i| (i + accounts.len() - 1) % accounts.len());
                         state.select(Some(i));
                     }
+                    KeyCode::Enter => {show_menu = !show_menu},
                     KeyCode::Char('b') => show_balance = !show_balance,
                     _ => {}
                 }

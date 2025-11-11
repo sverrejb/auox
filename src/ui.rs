@@ -3,9 +3,9 @@ use std::{io::Stdout, time::Duration};
 use ratatui::{
     Terminal,
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Flex, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState},
+    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState},
 };
 use tachyonfx::EffectManager;
 
@@ -16,6 +16,7 @@ pub fn draw(
     state: &mut TableState,
     accounts: &[Account],
     show_balance: &bool,
+    show_menu: &bool,
     effects: &mut EffectManager<()>,
     elapsed: Duration,
 ) {
@@ -78,6 +79,13 @@ pub fn draw(
 
         frame.render_stateful_widget(table, chunks[0], state);
 
+        if *show_menu {
+            let block = Block::bordered().title("Popup");
+            let popup_area = popup_area(frame_area, 60, 20);
+            frame.render_widget(Clear, popup_area);
+            frame.render_widget(block, popup_area);
+        }
+
         // Help bar with commands
         let help_text = "Commands: [q] Quit | [b] Toggle Balance | [↑/↓] Navigate";
         let help = Paragraph::new(help_text)
@@ -87,4 +95,13 @@ pub fn draw(
         frame.render_widget(help, chunks[1]);
         effects.process_effects(elapsed.into(), frame.buffer_mut(), frame_area);
     });
+}
+
+/// helper function to create a centered rect using up certain percentage of the available rect `r`
+fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
+    let [area] = vertical.areas(area);
+    let [area] = horizontal.areas(area);
+    area
 }
