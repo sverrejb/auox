@@ -25,8 +25,10 @@ use tachyonfx::{
 };
 
 pub struct AppState {
-    pub account_state: TableState,
-    pub menu_state: ListState,
+    pub account_index: TableState,
+    pub menu_index: ListState,
+    pub show_balance: bool,
+    pub menu_open: bool
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -46,15 +48,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let accounts = get_accounts();
 
-    // Track selected item
-    // let mut account_state = TableState::default();
-    // account_state.select(Some(0));
-
-    // let mut menu_state = ListState::default();
-    // menu_state.select(Some(0));
-
-
-    let mut show_balance = false;
 
     let mut effects: EffectManager<()> = EffectManager::default();
 
@@ -66,11 +59,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut exiting = false;
     let mut exit_start_time: Option<Instant> = None;
     let exit_duration = Duration::from_millis(500);
-    let mut menu_open = false;
 
-    let mut app_state = AppState {
-        account_state:  TableState::new().with_selected(0),
-        menu_state:  ListState::default().with_selected(Some(0))
+    let mut app = AppState {
+        account_index:  TableState::new().with_selected(0),
+        menu_index:  ListState::default().with_selected(Some(0)),
+        menu_open: false,
+        show_balance: false
     };
 
     let menu_length = 2;
@@ -80,11 +74,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         last_frame = Instant::now();
 
         ui::draw(
-            &mut app_state,
+            &mut app,
             &mut terminal,
             &accounts,
-            &show_balance,
-            &menu_open,
             &mut effects,
             elapsed,
         );
@@ -102,29 +94,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     KeyCode::Down => {
 
-                        if !menu_open {
-                            let i = app_state.account_state.selected().map_or(0, |i| (i + 1) % accounts.len());
-                            app_state.account_state.select(Some(i));
+                        if !app.menu_open {
+                            let i = app.account_index.selected().map_or(0, |i| (i + 1) % accounts.len());
+                            app.account_index.select(Some(i));
                         }
                         else {
-                            let i = app_state.menu_state.selected().map_or(0, |i| (i + 1) % menu_length);
-                            app_state.menu_state.select(Some(i));
+                            let i = app.menu_index.selected().map_or(0, |i| (i + 1) % menu_length);
+                            app.menu_index.select(Some(i));
                         }
                         
                     }
                     KeyCode::Up => {
-                        if !menu_open {
-                            let i = app_state.account_state.selected().map_or(0, |i| (i + accounts.len() - 1) % accounts.len());
-                            app_state.account_state.select(Some(i));
+                        if !app.menu_open {
+                            let i = app.account_index.selected().map_or(0, |i| (i + accounts.len() - 1) % accounts.len());
+                            app.account_index.select(Some(i));
                         }
                         else {
-                            let i = app_state.menu_state.selected().map_or(0, |i| (i + menu_length - 1) % menu_length);
-                            app_state.menu_state.select(Some(i));
+                            let i = app.menu_index.selected().map_or(0, |i| (i + menu_length - 1) % menu_length);
+                            app.menu_index.select(Some(i));
                         }
                     }
-                    KeyCode::Enter => {menu_open = true},
-                    KeyCode::Esc => {menu_open = false},
-                    KeyCode::Char('b') => show_balance = !show_balance,
+                    KeyCode::Enter => {app.menu_open = true},
+                    KeyCode::Esc => {app.menu_open = false},
+                    KeyCode::Char('b') => app.show_balance = !app.show_balance,
                     _ => {}
                 }
             }

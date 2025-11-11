@@ -12,14 +12,14 @@ use tachyonfx::EffectManager;
 use crate::{models::Account, AppState};
 
 pub fn draw(
-    app_state: &mut AppState,
+    app: &mut AppState,
     terminal: &mut Terminal<CrosstermBackend<&mut Stdout>>,
     accounts: &[Account],
-    show_balance: &bool,
-    menu_open: &bool,
     effects: &mut EffectManager<()>,
     elapsed: Duration,
 ) {
+    const MONEYBAG: &str = "💰 ";
+
     let _ = terminal.draw(|frame| {
         // Layout with table and help bar
         let frame_area = frame.area();
@@ -41,7 +41,7 @@ pub fn draw(
             .iter()
             .map(|acc| {
                 // Only allocate balance string when showing it
-                let balance = if *show_balance {
+                let balance = if app.show_balance {
                     format!("{:.2}", acc.balance)
                 } else {
                     String::new()
@@ -75,11 +75,11 @@ pub fn draw(
                     .fg(Color::White)
                     .add_modifier(Modifier::BOLD),
             )
-            .highlight_symbol("💰 ");
+            .highlight_symbol(MONEYBAG);
 
-        frame.render_stateful_widget(table, chunks[0], &mut app_state.account_state);
+        frame.render_stateful_widget(table, chunks[0], &mut app.account_index);
 
-        if *menu_open {
+        if app.menu_open {
             let menu_items = vec![
                 ListItem::new("Transaction History"),
                 ListItem::new("Cancel [esc]"),
@@ -93,12 +93,12 @@ pub fn draw(
                         .bg(Color::Blue)
                         .add_modifier(Modifier::BOLD)
                 )
-                .highlight_symbol("💰 ");
+                .highlight_symbol(MONEYBAG);
 
             let menu_area = popup_area(frame_area, 60, 20);
             let clear_area = popup_area(frame_area, 65, 25);
             frame.render_widget(Clear, clear_area);
-            frame.render_stateful_widget(list, menu_area, &mut app_state.menu_state);
+            frame.render_stateful_widget(list, menu_area, &mut app.menu_index);
         }
 
         // Help bar with commands
