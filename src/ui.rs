@@ -5,12 +5,11 @@ use ratatui::{
 };
 use tachyonfx::EffectManager;
 
-use crate::{models::Account, AppState};
+use crate::{AppState};
 
 pub fn draw(
     app: &mut AppState,
     terminal: &mut Terminal<CrosstermBackend<&mut Stdout>>,
-    accounts: &[Account],
     effects: &mut EffectManager<()>,
     elapsed: Duration,
 ) {
@@ -33,7 +32,7 @@ pub fn draw(
         );
 
         // Create table rows from accounts
-        let rows: Vec<Row> = accounts
+        let rows: Vec<Row> = app.accounts
             .iter()
             .map(|acc| {
                 // Only allocate balance string when showing it
@@ -77,11 +76,11 @@ pub fn draw(
 
         if app.menu_open {
 
-
-            let cancel_text = Line::from(vec!["Cancel".white(), Span::raw(" "), "[esc]".gray().dim()]);
+            let cancel_text = menu_text("Cancel", "esc");
+            let transaction_text = menu_text("Transactions", "T");
 
             let menu_items = vec![
-                ListItem::new("Transaction History"),
+                ListItem::new(transaction_text),
                 ListItem::new(cancel_text),
             ];
 
@@ -91,6 +90,7 @@ pub fn draw(
                 .highlight_style(
                     Style::default()
                         .bg(Color::Blue)
+                        .fg(Color::White)
                         .add_modifier(Modifier::BOLD)
                 )
                 .highlight_symbol(MONEYBAG);
@@ -119,4 +119,8 @@ fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
     let [area] = vertical.areas(area);
     let [area] = horizontal.areas(area);
     area
+}
+
+fn menu_text<'a>(option: &'a str, shortcut: &'a str) -> ratatui::prelude::Line<'a> {
+    Line::from(vec![option.white(), Span::raw(" [").gray().dim(), shortcut.gray().dim(), Span::raw("]").gray().dim()])
 }

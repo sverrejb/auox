@@ -24,6 +24,24 @@ pub fn get_accounts(access_token: String) -> AccountData {
     data
 }
 
+pub fn get_transactions(access_token: String, account_key: String) -> Result<Response, Error> {
+    let client = Client::new();
+
+    let url = format!(
+        "https://api.sparebank1.no/personal/banking/transactions?accountKey={}",
+        account_key
+    );
+
+    client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", access_token))
+        .header(
+            "Accept",
+            "application/vnd.sparebank1.v1+json; charset=utf-8",
+        )
+        .send()
+}
+
 pub fn hello_world(access_token: String) -> Result<Response, Error> {
     let client = Client::new();
     client

@@ -28,7 +28,8 @@ pub struct AppState {
     pub account_index: TableState,
     pub menu_index: ListState,
     pub show_balance: bool,
-    pub menu_open: bool
+    pub menu_open: bool,
+    pub accounts: Vec<Account>
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -46,14 +47,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let backend = CrosstermBackend::new(&mut stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let accounts = get_accounts();
-
 
     let mut effects: EffectManager<()> = EffectManager::default();
 
     // Add a simple fade-in effect
     let coalesce_in = fx::coalesce((500, Interpolation::QuintIn));
     effects.add_effect(coalesce_in);
+
 
     let mut last_frame = Instant::now();
     let mut exiting = false;
@@ -64,10 +64,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         account_index:  TableState::new().with_selected(0),
         menu_index:  ListState::default().with_selected(Some(0)),
         menu_open: false,
-        show_balance: false
+        show_balance: false,
+        accounts: get_accounts()
     };
 
-    let menu_length = 2;
+    let menu_length = 2; //TODO: fix
 
     loop {
         let elapsed = last_frame.elapsed();
@@ -76,7 +77,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ui::draw(
             &mut app,
             &mut terminal,
-            &accounts,
             &mut effects,
             elapsed,
         );
@@ -95,7 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     KeyCode::Down => {
 
                         if !app.menu_open {
-                            let i = app.account_index.selected().map_or(0, |i| (i + 1) % accounts.len());
+                            let i = app.account_index.selected().map_or(0, |i| (i + 1) % &app.accounts.len());
                             app.account_index.select(Some(i));
                         }
                         else {
@@ -106,7 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     KeyCode::Up => {
                         if !app.menu_open {
-                            let i = app.account_index.selected().map_or(0, |i| (i + accounts.len() - 1) % accounts.len());
+                            let i = app.account_index.selected().map_or(0, |i| (i + app.accounts.len() - 1) % app.accounts.len());
                             app.account_index.select(Some(i));
                         }
                         else {
