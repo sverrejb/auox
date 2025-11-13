@@ -1,5 +1,5 @@
 use crossterm::{
-    event::{self, Event, KeyCode},
+    event::{self, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -16,8 +16,7 @@ use ratatui::{
 };
 
 use crate::{
-    fileio::read_access_token_file,
-    models::{Account, Transaction, accounts},
+    models::{Account, Transaction},
 };
 
 mod api;
@@ -97,13 +96,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if event::poll(std::time::Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 match (key.code, &app.view) {
-                    (KeyCode::Char('q'), _) => {
-                        if !exiting {
-                            effects.add_effect(fx::dissolve((500, Interpolation::QuintIn)));
-                            exiting = true;
-                            exit_start_time = Some(Instant::now());
-                        }
-                    }
                     (KeyCode::Down, View::Accounts) => {
                         let i = app
                             .account_index
@@ -157,6 +149,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     (KeyCode::Esc, View::Transactions) => app.view = View::Accounts,
                     (KeyCode::Char('b'), View::Accounts) => app.show_balance = !app.show_balance,
                     (KeyCode::Char('m'), _) => app.show_credit_card = !app.show_credit_card,
+                    //exit command
+                    (KeyCode::Char('c'), _) if key.modifiers.contains(KeyModifiers::CONTROL)=> {
+                        if !exiting {
+                            effects.add_effect(fx::dissolve((500, Interpolation::QuintIn)));
+                            exiting = true;
+                            exit_start_time = Some(Instant::now());
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -179,15 +179,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn get_accounts() -> Vec<Account> {
     debug!("Fetching accounts");
-    let access_token = read_access_token_file().unwrap().access_token;
-    let data = api::get_accounts(access_token);
+    let data = api::get_accounts();
     data.accounts
 }
 
 fn get_transactions(account_key: &String) -> Vec<Transaction> {
     debug!("Fetching transactions");
-    let access_token = read_access_token_file().unwrap().access_token;
-    let data = api::get_transactions(access_token, account_key);
+    let data = api::get_transactions(account_key);
     data.transactions
 }
 

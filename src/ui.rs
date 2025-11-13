@@ -90,7 +90,7 @@ pub fn draw(
                 frame.render_stateful_widget(table, chunks[0], &mut app.account_index);
 
                 // Help bar with commands
-                let help_text = "Commands: [q] Quit | [b] Toggle Balance | [↑/↓] Navigate";
+                let help_text = "Commands: [Ctrl+C] Quit | [b] Toggle Balance | [↑/↓] Navigate";
                 let help = Paragraph::new(help_text)
                     .block(Block::default().borders(Borders::ALL))
                     .style(Style::default().fg(Color::Cyan));
@@ -194,7 +194,7 @@ pub fn draw(
                 frame.render_stateful_widget(table, chunks[0], &mut app.transaction_index);
 
                 // Help bar for transactions view
-                let help_text = "Commands: [q] Quit | [esc] Back to Accounts | [↑/↓] Navigate";
+                let help_text = "Commands: [Ctrl+C] Quit | [esc] Back to Accounts | [↑/↓] Navigate";
                 let help = Paragraph::new(help_text)
                     .block(Block::default().borders(Borders::ALL))
                     .style(Style::default().fg(Color::Cyan));

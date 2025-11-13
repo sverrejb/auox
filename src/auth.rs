@@ -14,7 +14,7 @@ pub fn auth(client_id: String, client_secret: String) {
     // 1: Check if access token present and valid
 
     if let Some(token_data) = read_access_token_file() {
-        if is_token_valid(token_data.access_token) {
+        if is_token_valid() {
             return;
         }
 
@@ -147,12 +147,8 @@ fn refresh_access_token(
     Ok(token_data)
 }
 
-fn is_token_valid(access_token: String) -> bool {
-    if access_token.is_empty() {
-        return false;
-    }
-
-    let response = api::hello_world(access_token);
+fn is_token_valid() -> bool {
+    let response = api::hello_world();
 
     match response {
         Ok(resp) => resp.status().is_success(),
