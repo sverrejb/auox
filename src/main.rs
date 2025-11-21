@@ -1,7 +1,7 @@
 use crossterm::{
     event::{self, Event, KeyCode, KeyModifiers},
     execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use log::debug;
 use std::{
@@ -10,14 +10,12 @@ use std::{
 };
 
 use ratatui::{
-    Terminal,
     backend::CrosstermBackend,
     widgets::{ListState, TableState},
+    Terminal,
 };
 
-use crate::{
-    models::{Account, Transaction},
-};
+use crate::models::{Account, Transaction};
 
 mod api;
 mod auth;
@@ -26,15 +24,15 @@ mod models;
 mod ui;
 
 use tachyonfx::{
-    EffectManager, Interpolation,
     fx::{self},
+    EffectManager, Interpolation,
 };
 #[derive(Clone, Copy)]
 pub enum View {
     Accounts,
     Menu,
     Transactions,
-    Transfer
+    Transfer,
 }
 
 pub struct AppState {
@@ -82,7 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         show_credit_card: false,
         accounts: get_accounts(),
         view: View::Accounts,
-        transactions: vec!()
+        transactions: vec![],
     };
 
     loop {
@@ -135,10 +133,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     (KeyCode::Up, View::Transactions) => {
                         if !app.transactions.is_empty() {
-                            let i = app
-                                .transaction_index
-                                .selected()
-                                .map_or(0, |i| (i + app.transactions.len() - 1) % app.transactions.len());
+                            let i = app.transaction_index.selected().map_or(0, |i| {
+                                (i + app.transactions.len() - 1) % app.transactions.len()
+                            });
                             app.transaction_index.select(Some(i));
                         }
                     }
@@ -149,7 +146,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     (KeyCode::Char('b'), View::Accounts) => app.show_balance = !app.show_balance,
                     (KeyCode::Char('m'), _) => app.show_credit_card = !app.show_credit_card,
                     //exit the application
-                    (KeyCode::Char('c'), _) if key.modifiers.contains(KeyModifiers::CONTROL)=> {
+                    (KeyCode::Char('c'), _) if key.modifiers.contains(KeyModifiers::CONTROL) => {
                         if !exiting {
                             effects.add_effect(fx::dissolve((500, Interpolation::QuintIn)));
                             exiting = true;
@@ -190,10 +187,13 @@ fn get_transactions(account_key: &String) -> Vec<Transaction> {
 
 fn handle_menu_select(app: &mut AppState) {
     //This is horrible, should probably fix.
-    let new_view = ui::MENU_ITEMS.get(app.menu_index.selected().unwrap()).unwrap().2;
+    let new_view = ui::MENU_ITEMS
+        .get(app.menu_index.selected().unwrap())
+        .unwrap()
+        .2;
 
     match new_view {
-        View::Accounts => {},
+        View::Accounts => {}
         View::Transactions => {
             let account_key = &app
                 .accounts
@@ -202,8 +202,10 @@ fn handle_menu_select(app: &mut AppState) {
                 .key;
             let transactions = get_transactions(account_key);
             app.transactions = transactions;
-        },
-        View::Transfer => {todo!()},
+        }
+        View::Transfer => {
+            todo!()
+        }
         View::Menu => {}
     }
     app.view = new_view;
