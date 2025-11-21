@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Constraint, Direction, Flex, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table},
+    widgets::{block::Title, Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table},
     Frame, Terminal,
 };
 use tachyonfx::EffectManager;
@@ -32,18 +32,25 @@ pub fn draw(
 
         match app.view_stack.last() {
             Some(&View::Accounts) => {
-                draw_account_view(app, effects, elapsed, frame, frame_area);
+                draw_account_view(app, effects, elapsed, frame, frame_area, "Accounts");
             }
             Some(&View::Menu) => {
                 //we still draw the account view in order to keep it in the background of the menu
-                draw_account_view(app, effects, elapsed, frame, frame_area);
+                draw_account_view(app, effects, elapsed, frame, frame_area, "Accounts");
                 draw_menu(app, frame, frame_area);
             }
             Some(&View::Transactions) => {
                 draw_transactions_view(app, frame, frame_area);
             }
             Some(&View::TransferSelect) => {
-                draw_transfer_view(app, frame, frame_area);
+                draw_account_view(
+                    app,
+                    effects,
+                    elapsed,
+                    frame,
+                    frame_area,
+                    "Select target account",
+                );
             }
             Some(&View::TransferModal) => {
                 draw_transfer_modal(app, effects, elapsed, frame, frame_area);
@@ -51,71 +58,6 @@ pub fn draw(
             None => {}
         }
     });
-}
-
-fn draw_transfer_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(3)])
-        .split(frame_area);
-
-    // Create header row
-    let header = Row::new(vec!["Account Name", "Balance", "Account Number", "Owner"]).style(
-        Style::default()
-            .fg(Color::Yellow)
-            .add_modifier(Modifier::BOLD),
-    );
-
-    // Create table rows from accounts
-    let rows: Vec<Row> = app
-        .accounts
-        .iter()
-        .filter(|acc| app.show_credit_card || acc.type_field != "CREDITCARD")
-        .map(|acc| {
-            let balance = if app.show_balance {
-                format!("{:.2}", acc.balance)
-            } else {
-                String::new()
-            };
-
-            Row::new(vec![
-                Cell::from(acc.name.as_str()),
-                Cell::from(balance),
-                Cell::from(acc.account_number.as_str()),
-                Cell::from(acc.owner.as_ref().map(|o| o.name.as_str()).unwrap_or("N/A")),
-            ])
-        })
-        .collect();
-
-    // Define column widths
-    let widths = [
-        Constraint::Percentage(25),
-        Constraint::Percentage(25),
-        Constraint::Percentage(25),
-        Constraint::Percentage(25),
-    ];
-
-    // Create the Table widget
-    let table = Table::new(rows, widths)
-        .header(header)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Select target account"),
-        )
-        .row_highlight_style(
-            Style::default()
-                .bg(Color::Blue)
-                .fg(Color::White)
-                .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol(MONEYBAG);
-
-    frame.render_stateful_widget(table, chunks[0], &mut app.account_index);
-
-    // Help bar with commands
-    let help = help_bar("Commands: [Ctrl+C] Quit | [b] Toggle Balance | [↑/↓] Navigate");
-    frame.render_widget(help, chunks[1]);
 }
 
 fn draw_transfer_modal(
@@ -134,6 +76,7 @@ fn draw_account_view(
     elapsed: Duration,
     frame: &mut Frame<'_>,
     frame_area: Rect,
+    title: &str,
 ) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -179,7 +122,7 @@ fn draw_account_view(
     // Create the Table widget
     let table = Table::new(rows, widths)
         .header(header)
-        .block(Block::default().borders(Borders::ALL).title("Accounts"))
+        .block(Block::default().borders(Borders::ALL).title(title))
         .row_highlight_style(
             Style::default()
                 .bg(Color::Blue)

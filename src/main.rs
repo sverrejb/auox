@@ -47,6 +47,14 @@ pub struct AppState {
     pub transactions: Vec<Transaction>,
 }
 
+fn next_index(current: Option<usize>, len: usize) -> usize {
+    current.map_or(0, |i| (i + 1) % len)
+}
+
+fn prev_index(current: Option<usize>, len: usize) -> usize {
+    current.map_or(0, |i| (i + len - 1) % len)
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     // Panic hook restores terminal to working state on panic before exiting.
@@ -94,52 +102,46 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if event::poll(std::time::Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 match (key.code, app.view_stack.last()) {
-                    (KeyCode::Down, Some(&View::Accounts)) => {
-                        let i = app
-                            .account_index
-                            .selected()
-                            .map_or(0, |i| (i + 1) % &app.accounts.len());
-                        app.account_index.select(Some(i));
-                    }
-                    (KeyCode::Down, Some(&View::Menu)) => {
-                        let i = app
-                            .menu_index
-                            .selected()
-                            .map_or(0, |i| (i + 1) % ui::MENU_ITEMS.len());
-                        app.menu_index.select(Some(i));
-                    }
-
-                    (KeyCode::Up, Some(&View::Accounts)) => {
-                        let i = app
-                            .account_index
-                            .selected()
-                            .map_or(0, |i| (i + app.accounts.len() - 1) % app.accounts.len());
-                        app.account_index.select(Some(i));
-                    }
-                    (KeyCode::Up, Some(&View::Menu)) => {
-                        let i = app
-                            .menu_index
-                            .selected()
-                            .map_or(0, |i| (i + ui::MENU_ITEMS.len() - 1) % ui::MENU_ITEMS.len());
-                        app.menu_index.select(Some(i));
-                    }
-                    (KeyCode::Down, Some(&View::Transactions)) => {
-                        if !app.transactions.is_empty() {
-                            let i = app
-                                .transaction_index
-                                .selected()
-                                .map_or(0, |i| (i + 1) % app.transactions.len());
-                            app.transaction_index.select(Some(i));
+                    (KeyCode::Down, Some(view)) => match view {
+                        View::Accounts | View::TransferSelect => {
+                            let i = next_index(app.account_index.selected(), app.accounts.len());
+                            app.account_index.select(Some(i));
                         }
-                    }
-                    (KeyCode::Up, Some(&View::Transactions)) => {
-                        if !app.transactions.is_empty() {
-                            let i = app.transaction_index.selected().map_or(0, |i| {
-                                (i + app.transactions.len() - 1) % app.transactions.len()
-                            });
-                            app.transaction_index.select(Some(i));
+                        View::Menu => {
+                            let i = next_index(app.menu_index.selected(), ui::MENU_ITEMS.len());
+                            app.menu_index.select(Some(i));
                         }
-                    }
+                        View::Transactions => {
+                            if !app.transactions.is_empty() {
+                                let i = next_index(
+                                    app.transaction_index.selected(),
+                                    app.transactions.len(),
+                                );
+                                app.transaction_index.select(Some(i));
+                            }
+                        }
+                        _ => {}
+                    },
+                    (KeyCode::Up, Some(view)) => match view {
+                        View::Accounts | View::TransferSelect => {
+                            let i = prev_index(app.account_index.selected(), app.accounts.len());
+                            app.account_index.select(Some(i));
+                        }
+                        View::Menu => {
+                            let i = prev_index(app.menu_index.selected(), ui::MENU_ITEMS.len());
+                            app.menu_index.select(Some(i));
+                        }
+                        View::Transactions => {
+                            if !app.transactions.is_empty() {
+                                let i = prev_index(
+                                    app.transaction_index.selected(),
+                                    app.transactions.len(),
+                                );
+                                app.transaction_index.select(Some(i));
+                            }
+                        }
+                        _ => {}
+                    },
                     (KeyCode::Enter, Some(&View::Accounts)) => app.view_stack.push(View::Menu),
                     (KeyCode::Enter, Some(&View::Menu)) => handle_menu_select(&mut app),
                     (KeyCode::Esc, _) => {
