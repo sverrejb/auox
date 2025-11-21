@@ -32,7 +32,8 @@ pub enum View {
     Accounts,
     Menu,
     Transactions,
-    Transfer,
+    TransferSelect,
+    TransferModal,
 }
 
 pub struct AppState {
@@ -42,7 +43,7 @@ pub struct AppState {
     pub show_balance: bool,
     pub show_credit_card: bool,
     pub accounts: Vec<Account>,
-    pub view: View,
+    pub view_stack: Vec<View>,
     pub transactions: Vec<Transaction>,
 }
 
@@ -79,7 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         show_balance: false,
         show_credit_card: false,
         accounts: get_accounts(),
-        view: View::Accounts,
+        view_stack: vec![View::Accounts],
         transactions: vec![],
     };
 
@@ -92,15 +93,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Handle input
         if event::poll(std::time::Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
-                match (key.code, &app.view) {
-                    (KeyCode::Down, View::Accounts) => {
+                match (key.code, app.view_stack.last()) {
+                    (KeyCode::Down, Some(&View::Accounts)) => {
                         let i = app
                             .account_index
                             .selected()
                             .map_or(0, |i| (i + 1) % &app.accounts.len());
                         app.account_index.select(Some(i));
                     }
-                    (KeyCode::Down, View::Menu) => {
+                    (KeyCode::Down, Some(&View::Menu)) => {
                         let i = app
                             .menu_index
                             .selected()
@@ -108,21 +109,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         app.menu_index.select(Some(i));
                     }
 
-                    (KeyCode::Up, View::Accounts) => {
+                    (KeyCode::Up, Some(&View::Accounts)) => {
                         let i = app
                             .account_index
                             .selected()
                             .map_or(0, |i| (i + app.accounts.len() - 1) % app.accounts.len());
                         app.account_index.select(Some(i));
                     }
-                    (KeyCode::Up, View::Menu) => {
+                    (KeyCode::Up, Some(&View::Menu)) => {
                         let i = app
                             .menu_index
                             .selected()
                             .map_or(0, |i| (i + ui::MENU_ITEMS.len() - 1) % ui::MENU_ITEMS.len());
                         app.menu_index.select(Some(i));
                     }
-                    (KeyCode::Down, View::Transactions) => {
+                    (KeyCode::Down, Some(&View::Transactions)) => {
                         if !app.transactions.is_empty() {
                             let i = app
                                 .transaction_index
@@ -131,7 +132,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             app.transaction_index.select(Some(i));
                         }
                     }
-                    (KeyCode::Up, View::Transactions) => {
+                    (KeyCode::Up, Some(&View::Transactions)) => {
                         if !app.transactions.is_empty() {
                             let i = app.transaction_index.selected().map_or(0, |i| {
                                 (i + app.transactions.len() - 1) % app.transactions.len()
@@ -139,11 +140,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             app.transaction_index.select(Some(i));
                         }
                     }
-                    (KeyCode::Enter, View::Accounts) => app.view = View::Menu,
-                    (KeyCode::Enter, View::Menu) => handle_menu_select(&mut app),
-                    (KeyCode::Esc, View::Menu) => app.view = View::Accounts,
-                    (KeyCode::Esc, View::Transactions) => app.view = View::Accounts,
-                    (KeyCode::Char('b'), View::Accounts) => app.show_balance = !app.show_balance,
+                    (KeyCode::Enter, Some(&View::Accounts)) => app.view_stack.push(View::Menu),
+                    (KeyCode::Enter, Some(&View::Menu)) => handle_menu_select(&mut app),
+                    (KeyCode::Esc, _) => {
+                        if app.view_stack.len() > 1 {
+                            app.view_stack.pop();
+                        }
+                    }
+                    (KeyCode::Char('b'), Some(&View::Accounts)) => {
+                        app.show_balance = !app.show_balance
+                    }
                     (KeyCode::Char('m'), _) => app.show_credit_card = !app.show_credit_card,
                     //exit the application
                     (KeyCode::Char('c'), _) if key.modifiers.contains(KeyModifiers::CONTROL) => {
@@ -203,12 +209,11 @@ fn handle_menu_select(app: &mut AppState) {
             let transactions = get_transactions(account_key);
             app.transactions = transactions;
         }
-        View::Transfer => {
-            todo!()
-        }
+        View::TransferSelect => {}
+        View::TransferModal => {}
         View::Menu => {}
     }
-    app.view = new_view;
+    app.view_stack.push(new_view);
 }
 
 fn set_up_panic_hook() {

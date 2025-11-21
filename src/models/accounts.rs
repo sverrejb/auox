@@ -25,7 +25,6 @@ pub struct Account {
     pub type_field: String,
     pub product_id: Option<String>,
     pub description_code: Option<String>,
-    pub disposal_role: bool,
     pub account_properties: AccountProperties,
     pub credit_card_credit_limit: Option<f64>,
     #[serde(rename = "creditCardAccountID")]

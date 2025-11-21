@@ -1,12 +1,12 @@
 use std::{io::Stdout, time::Duration};
 
 use ratatui::{
-    Frame, Terminal,
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Flex, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table},
+    Frame, Terminal,
 };
 use tachyonfx::EffectManager;
 
@@ -14,7 +14,7 @@ use crate::{AppState, View};
 
 pub const MENU_ITEMS: &[(&str, &str, View)] = &[
     ("Transactions", "T", View::Transactions),
-    ("Transfer", "X", View::Transfer),
+    ("Transfer from", "F", View::TransferSelect),
     ("Cancel", "esc", View::Accounts),
 ];
 
@@ -30,21 +30,102 @@ pub fn draw(
         // Layout with table and help bar
         let frame_area = frame.area();
 
-        match app.view {
-            View::Accounts => {
+        match app.view_stack.last() {
+            Some(&View::Accounts) => {
                 draw_account_view(app, effects, elapsed, frame, frame_area);
             }
-            View::Menu => {
+            Some(&View::Menu) => {
                 //we still draw the account view in order to keep it in the background of the menu
                 draw_account_view(app, effects, elapsed, frame, frame_area);
                 draw_menu(app, frame, frame_area);
             }
-            View::Transactions => {
+            Some(&View::Transactions) => {
                 draw_transactions_view(app, frame, frame_area);
             }
-            _ => {}
+            Some(&View::TransferSelect) => {
+                draw_transfer_view(app, frame, frame_area);
+            }
+            Some(&View::TransferModal) => {
+                draw_transfer_modal(app, effects, elapsed, frame, frame_area);
+            }
+            None => {}
         }
     });
+}
+
+fn draw_transfer_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(0), Constraint::Length(3)])
+        .split(frame_area);
+
+    // Create header row
+    let header = Row::new(vec!["Account Name", "Balance", "Account Number", "Owner"]).style(
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD),
+    );
+
+    // Create table rows from accounts
+    let rows: Vec<Row> = app
+        .accounts
+        .iter()
+        .filter(|acc| app.show_credit_card || acc.type_field != "CREDITCARD")
+        .map(|acc| {
+            let balance = if app.show_balance {
+                format!("{:.2}", acc.balance)
+            } else {
+                String::new()
+            };
+
+            Row::new(vec![
+                Cell::from(acc.name.as_str()),
+                Cell::from(balance),
+                Cell::from(acc.account_number.as_str()),
+                Cell::from(acc.owner.as_ref().map(|o| o.name.as_str()).unwrap_or("N/A")),
+            ])
+        })
+        .collect();
+
+    // Define column widths
+    let widths = [
+        Constraint::Percentage(25),
+        Constraint::Percentage(25),
+        Constraint::Percentage(25),
+        Constraint::Percentage(25),
+    ];
+
+    // Create the Table widget
+    let table = Table::new(rows, widths)
+        .header(header)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Select target account"),
+        )
+        .row_highlight_style(
+            Style::default()
+                .bg(Color::Blue)
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol(MONEYBAG);
+
+    frame.render_stateful_widget(table, chunks[0], &mut app.account_index);
+
+    // Help bar with commands
+    let help = help_bar("Commands: [Ctrl+C] Quit | [b] Toggle Balance | [↑/↓] Navigate");
+    frame.render_widget(help, chunks[1]);
+}
+
+fn draw_transfer_modal(
+    _app: &mut AppState,
+    _effects: &mut EffectManager<()>,
+    _elapsed: Duration,
+    _frame: &mut Frame<'_>,
+    _frame_area: Rect,
+) {
+    todo!("Transfer not implemented bruh");
 }
 
 fn draw_account_view(
@@ -70,9 +151,7 @@ fn draw_account_view(
     let rows: Vec<Row> = app
         .accounts
         .iter()
-        .filter(|acc| {
-            app.show_credit_card || acc.type_field != "CREDITCARD"
-        })
+        .filter(|acc| app.show_credit_card || acc.type_field != "CREDITCARD")
         .map(|acc| {
             let balance = if app.show_balance {
                 format!("{:.2}", acc.balance)
@@ -140,11 +219,7 @@ fn draw_menu(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect) {
     frame.render_stateful_widget(list, menu_area, &mut app.menu_index);
 }
 
-fn draw_transactions_view(
-    app: &mut AppState,
-    frame: &mut Frame<'_>,
-    frame_area: Rect,
-) {
+fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect) {
     // Fullscreen layout for transactions
     let chunks = Layout::default()
         .direction(Direction::Vertical)
