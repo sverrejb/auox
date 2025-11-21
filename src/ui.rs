@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Constraint, Direction, Flex, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{block::Title, Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table},
+    widgets::{Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table},
     Frame, Terminal,
 };
 use tachyonfx::EffectManager;
@@ -32,11 +32,11 @@ pub fn draw(
 
         match app.view_stack.last() {
             Some(&View::Accounts) => {
-                draw_account_view(app, effects, elapsed, frame, frame_area, "Accounts");
+                draw_account_view(app, elapsed, frame, frame_area, "Accounts");
             }
             Some(&View::Menu) => {
                 //we still draw the account view in order to keep it in the background of the menu
-                draw_account_view(app, effects, elapsed, frame, frame_area, "Accounts");
+                draw_account_view(app, elapsed, frame, frame_area, "Accounts");
                 draw_menu(app, frame, frame_area);
             }
             Some(&View::Transactions) => {
@@ -45,7 +45,7 @@ pub fn draw(
             Some(&View::TransferSelect) => {
                 draw_account_view(
                     app,
-                    effects,
+                    // effects,
                     elapsed,
                     frame,
                     frame_area,
@@ -57,6 +57,8 @@ pub fn draw(
             }
             None => {}
         }
+
+        effects.process_effects(elapsed.into(), frame.buffer_mut(), frame_area);
     });
 }
 
@@ -72,7 +74,7 @@ fn draw_transfer_modal(
 
 fn draw_account_view(
     app: &mut AppState,
-    effects: &mut EffectManager<()>,
+    // effects: &mut EffectManager<()>,
     elapsed: Duration,
     frame: &mut Frame<'_>,
     frame_area: Rect,
@@ -136,7 +138,6 @@ fn draw_account_view(
     // Help bar with commands
     let help = help_bar("Commands: [Ctrl+C] Quit | [b] Toggle Balance | [↑/↓] Navigate");
     frame.render_widget(help, chunks[1]);
-    effects.process_effects(elapsed.into(), frame.buffer_mut(), frame_area);
 }
 
 fn draw_menu(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect) {
