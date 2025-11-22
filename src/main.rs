@@ -15,6 +15,9 @@ use ratatui::{
     Terminal,
 };
 
+use tui_input::backend::crossterm::EventHandler;
+use tui_input::Input;
+
 use crate::models::{Account, Transaction};
 
 mod api;
@@ -36,11 +39,6 @@ pub enum View {
     TransferModal,
 }
 
-pub enum Directions {
-    Up,
-    Down,
-}
-
 pub struct AppState {
     pub account_index: TableState,
     pub menu_index: ListState,
@@ -52,6 +50,7 @@ pub struct AppState {
     pub transactions: Vec<Transaction>,
     pub from_account: Option<usize>,
     pub target_account: Option<usize>,
+    pub amount_input: Input,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -91,6 +90,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         transactions: vec![],
         from_account: None,
         target_account: None,
+        amount_input: Input::default(),
     };
 
     loop {
@@ -103,43 +103,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if event::poll(std::time::Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 match (key.code, app.view_stack.last()) {
-                    (KeyCode::Down | KeyCode::Up, Some(view)) => {
-                        let direction = if key.code == KeyCode::Down {
-                            Directions::Down
-                        } else {
-                            Directions::Up
-                        };
-
-                        match view {
-                            View::Accounts | View::TransferSelect => {
-                                let i = get_index(
-                                    app.account_index.selected(),
-                                    app.accounts.len(),
-                                    direction,
-                                );
-                                app.account_index.select(Some(i));
-                            }
-                            View::Menu => {
-                                let i = get_index(
-                                    app.menu_index.selected(),
-                                    ui::MENU_ITEMS.len(),
-                                    direction,
-                                );
-                                app.menu_index.select(Some(i));
-                            }
-                            View::Transactions => {
-                                if !app.transactions.is_empty() {
-                                    let i = get_index(
-                                        app.transaction_index.selected(),
-                                        app.transactions.len(),
-                                        direction,
-                                    );
-                                    app.transaction_index.select(Some(i));
-                                }
-                            }
-                            _ => {}
+                    (KeyCode::Down | KeyCode::Up, Some(view)) => match view {
+                        View::Accounts | View::TransferSelect => {
+                            let i = get_index(
+                                app.account_index.selected(),
+                                app.accounts.len(),
+                                key.code,
+                            );
+                            app.account_index.select(i);
                         }
-                    }
+                        View::Menu => {
+                            let i = get_index(
+                                app.menu_index.selected(),
+                                ui::MENU_ITEMS.len(),
+                                key.code,
+                            );
+                            app.menu_index.select(i);
+                        }
+                        View::Transactions => {
+                            if !app.transactions.is_empty() {
+                                let i = get_index(
+                                    app.transaction_index.selected(),
+                                    app.transactions.len(),
+                                    key.code,
+                                );
+                                app.transaction_index.select(i);
+                            }
+                        }
+                        _ => {}
+                    },
                     (KeyCode::Enter, Some(&View::Accounts)) => app.view_stack.push(View::Menu),
                     (KeyCode::Enter, Some(&View::Menu)) => handle_menu_select(&mut app),
                     (KeyCode::Enter, Some(&View::TransferSelect)) => {
@@ -165,6 +157,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             exit_start_time = Some(Instant::now());
                         }
                     }
+                    // Handle input in TransferModal
+                    (_, Some(&View::TransferModal)) => {
+                        app.amount_input.handle_event(&Event::Key(key));
+                    }
                     _ => {}
                 }
             }
@@ -185,10 +181,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn get_index(current: Option<usize>, len: usize, direction: Directions) -> usize {
+fn get_index(current: Option<usize>, len: usize, direction: KeyCode) -> Option<usize> {
     match direction {
-        Directions::Up => current.map_or(0, |i| (i + len - 1) % len),
-        Directions::Down => current.map_or(0, |i| (i + 1) % len),
+        KeyCode::Up => Some(current.map_or(0, |i| (i + len - 1) % len)),
+        KeyCode::Down => Some(current.map_or(0, |i| (i + len + 1) % len)),
+        _ => None, //this won'thappen, any way to circumvent? Custom Direction enum, maybe.
     }
 }
 

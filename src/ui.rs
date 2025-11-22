@@ -2,7 +2,7 @@ use std::{io::Stdout, time::Duration};
 
 use ratatui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Flex, Layout, Rect},
+    layout::{Constraint, Flex, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table},
@@ -18,8 +18,8 @@ pub const MENU_ITEMS: &[(&str, &str, View)] = &[
     ("Cancel", "esc", View::Accounts),
 ];
 
-const MONEYBAG: &str = "💰 ";
-
+const MONEYBAG: &str = "💰  ";
+const ARROW: &str = "💰➡️";
 pub fn draw(
     app: &mut AppState,
     terminal: &mut Terminal<CrosstermBackend<&mut Stdout>>,
@@ -32,21 +32,22 @@ pub fn draw(
 
         match app.view_stack.last() {
             Some(&View::Accounts) => {
-                draw_account_view(app, frame, frame_area, "Accounts");
+                draw_account_view(app, frame, frame_area, "Accounts", MONEYBAG);
             }
             Some(&View::Menu) => {
                 //we still draw the account view in order to keep it in the background of the menu
-                draw_account_view(app, frame, frame_area, "Accounts");
+                draw_account_view(app, frame, frame_area, "Accounts", MONEYBAG);
                 draw_menu(app, frame, frame_area);
             }
             Some(&View::Transactions) => {
                 draw_transactions_view(app, frame, frame_area);
             }
             Some(&View::TransferSelect) => {
-                draw_account_view(app, frame, frame_area, "Select target account");
+                draw_account_view(app, frame, frame_area, "Select target account", ARROW);
             }
             Some(&View::TransferModal) => {
-                draw_transfer_modal(app, effects, elapsed, frame, frame_area);
+                draw_account_view(app, frame, frame_area, "Select target account", ARROW);
+                draw_transfer_modal(app, frame, frame_area);
             }
             None => {}
         }
@@ -55,21 +56,14 @@ pub fn draw(
     });
 }
 
-fn draw_transfer_modal(
-    _app: &mut AppState,
-    _effects: &mut EffectManager<()>,
-    _elapsed: Duration,
-    _frame: &mut Frame<'_>,
-    _frame_area: Rect,
+fn draw_account_view(
+    app: &mut AppState,
+    frame: &mut Frame<'_>,
+    frame_area: Rect,
+    title: &str,
+    icon: &str,
 ) {
-    todo!("Transfer not implemented bruh");
-}
-
-fn draw_account_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect, title: &str) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(3)])
-        .split(frame_area);
+    let chunks = Layout::vertical([Constraint::Min(0), Constraint::Length(3)]).split(frame_area);
 
     // Create header row
     let header = Row::new(vec!["Account Name", "Balance", "Account Number", "Owner"]).style(
@@ -117,12 +111,13 @@ fn draw_account_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect
                 .fg(Color::White)
                 .add_modifier(Modifier::BOLD),
         )
-        .highlight_symbol(MONEYBAG);
+        .highlight_symbol(icon);
 
     frame.render_stateful_widget(table, chunks[0], &mut app.account_index);
 
     // Help bar with commands
-    let help = help_bar("Commands: [Ctrl+C] Quit | [b] Toggle Balance | [↑/↓] Navigate");
+    let help =
+        help_bar("Commands: [Ctrl+C] Quit | [esc] Back | [b] Toggle Balance | [↑/↓] Navigate");
     frame.render_widget(help, chunks[1]);
 }
 
@@ -149,12 +144,66 @@ fn draw_menu(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect) {
     frame.render_stateful_widget(list, menu_area, &mut app.menu_index);
 }
 
+fn draw_transfer_modal(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect) {
+    let block_area = popup_area(frame_area, 60, 20);
+    let clear_area = popup_area(frame_area, 65, 25);
+
+    let block = Block::bordered().title("Transfer");
+
+    frame.render_widget(Clear, clear_area);
+    frame.render_widget(block.clone(), block_area);
+
+    // Get inner area for content
+    let inner_area = block.inner(block_area);
+
+    // Create vertical layout: first row for To/From, second row for Amount input
+    let rows = Layout::vertical([Constraint::Length(1), Constraint::Length(3)]).split(inner_area);
+
+    // First row: To and From labels side by side
+    let to_from_chunks =
+        Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)]).split(rows[0]);
+
+    let from_name = app
+        .from_account
+        .and_then(|idx| app.accounts.get(idx))
+        .map(|acc| acc.name.as_str())
+        .unwrap_or("N/A");
+    let to_name = app
+        .target_account
+        .and_then(|idx| app.accounts.get(idx))
+        .map(|acc| acc.name.as_str())
+        .unwrap_or("N/A");
+
+    let from_label = Paragraph::new(format!("From: {}", from_name));
+    let to_label = Paragraph::new(format!("To: {}", to_name));
+    frame.render_widget(from_label, to_from_chunks[0]);
+    frame.render_widget(to_label, to_from_chunks[1]);
+
+    // Second row: Amount label and input field
+    let amount_chunks =
+        Layout::horizontal([Constraint::Length(8), Constraint::Min(0)]).split(rows[1]);
+
+    // Vertically center the "Amount:" label with the input box
+    let label_rows =
+        Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).split(amount_chunks[0]);
+
+    let amount_label = Paragraph::new("Amount:");
+    frame.render_widget(amount_label, label_rows[1]);
+
+    // Render bordered input field
+    let width = amount_chunks[1].width.saturating_sub(2);
+    let scroll = app.amount_input.visual_scroll(width as usize);
+    let input_widget = Paragraph::new(app.amount_input.value())
+        .block(Block::default().borders(Borders::ALL))
+        .style(Style::default().fg(Color::Yellow))
+        .scroll((0, scroll as u16));
+
+    frame.render_widget(input_widget, amount_chunks[1]);
+}
+
 fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect) {
     // Fullscreen layout for transactions
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(3)])
-        .split(frame_area);
+    let chunks = Layout::vertical([Constraint::Min(0), Constraint::Length(3)]).split(frame_area);
 
     // Create header row
     let header = Row::new(vec!["Date", "Description", "Amount", "Type"]).style(
@@ -222,7 +271,7 @@ fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area:
     frame.render_stateful_widget(table, chunks[0], &mut app.transaction_index);
 
     // Help bar for transactions view
-    let help = help_bar("Commands: [Ctrl+C] Quit | [esc] Back to Accounts | [↑/↓] Navigate");
+    let help = help_bar("Commands: [Ctrl+C] Quit | [esc] Back | [↑/↓] Navigate");
     frame.render_widget(help, chunks[1]);
 }
 
