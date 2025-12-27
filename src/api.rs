@@ -7,7 +7,7 @@ use reqwest::{
 use tui_input::Input;
 
 use crate::{
-    AppState, View, fileio::read_access_token_file, models::{AccountData, CreateTransferDTO, TransactionResponse, TransferResponse}
+    AppState, View, fileio::read_access_token_file, models::{AccountData, CreateTransferDTO, TransactionResponse, TransferResponse, TransferToCreditCardDTO}
 };
 
 fn client() -> Client {
@@ -105,28 +105,46 @@ pub fn perform_transfer(app: &mut AppState) {
         }
     };
 
-    // Get message from input (optional, can be empty)
-    let message = app.message_input.value().trim();
-    let message = if message.is_empty() {
-        None
+    // Check if transferring to a credit card
+    let is_credit_card = to_account.type_field == "CREDITCARD";
+
+    let response = if is_credit_card {
+        // Credit card transfer - does not support message field
+        let credit_card_id = to_account
+            .credit_card_account_id
+            .as_ref()
+            .expect("Credit card account missing credit_card_account_id");
+
+        let transfer = TransferToCreditCardDTO {
+            amount: amount.to_string(),
+            due_date: None,
+            from_account: from_account.account_number.clone(),
+            credit_card_account_id: credit_card_id.clone(),
+        };
+
+        debug!("Performing credit card transfer: {:?}", transfer);
+        create_credit_card_transfer(transfer)
     } else {
-        Some(message.to_string())
+        // Regular account transfer
+        let message = app.message_input.value().trim();
+        let message = if message.is_empty() {
+            None
+        } else {
+            Some(message.to_string())
+        };
+
+        let transfer = CreateTransferDTO {
+            amount: amount.to_string(),
+            due_date: None,
+            message,
+            to_account: to_account.account_number.clone(),
+            from_account: from_account.account_number.clone(),
+            currency_code: None,
+        };
+
+        debug!("Performing transfer: {:?}", transfer);
+        create_transfer(transfer)
     };
-
-    // Create transfer DTO
-    let transfer = CreateTransferDTO {
-        amount: amount.to_string(),
-        due_date: None,
-        message,
-        to_account: to_account.account_number.clone(),
-        from_account: from_account.account_number.clone(),
-        currency_code: None,
-    };
-
-    debug!("Performing transfer: {:?}", transfer);
-
-    // Call API
-    let response = create_transfer(transfer);
 
     // Check for errors
     if response.errors.is_empty() {
@@ -188,6 +206,39 @@ pub fn create_transfer(transfer: CreateTransferDTO) -> TransferResponse {
         }
         Err(err) => {
             panic!("Transfer request failed: {}", err)
+        }
+    };
+
+    data
+}
+
+pub fn create_credit_card_transfer(transfer: TransferToCreditCardDTO) -> TransferResponse {
+    let url = "https://api.sparebank1.no/personal/banking/transfer/creditcard/transferTo";
+
+    let transfer_response = client().post(url).json(&transfer).send();
+
+    let data: TransferResponse = match transfer_response {
+        Ok(response) => {
+            let status = response.status();
+            let text = response
+                .text()
+                .expect("Failed to get credit card transfer response text");
+
+            // Check if the HTTP request was successful
+            if !status.is_success() {
+                panic!(
+                    "Credit card transfer API returned HTTP {}: {}",
+                    status,
+                    text
+                );
+            }
+
+            serde_json::from_str(&text).unwrap_or_else(|err| {
+                panic!("Failed to parse credit card transfer JSON: {}\nResponse was: {}", err, text)
+            })
+        }
+        Err(err) => {
+            panic!("Credit card transfer request failed: {}", err)
         }
     };
 
