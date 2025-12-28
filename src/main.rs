@@ -43,7 +43,6 @@ pub struct AppState {
     pub transaction_index: TableState,
     pub show_balance: bool,
     pub show_credit_card: bool,
-    pub mask_personal_info: bool,
     pub accounts: Vec<Account>,
     pub view_stack: Vec<View>,
     pub transactions: Vec<Transaction>,
@@ -90,9 +89,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         account_index: TableState::new().with_selected(0),
         menu_index: ListState::default().with_selected(Some(0)),
         transaction_index: TableState::new().with_selected(0),
-        show_balance: true,
+        show_balance: false,
         show_credit_card: false,
-        mask_personal_info: true,
         accounts: get_accounts(),
         view_stack: vec![View::Accounts],
         transactions: vec![],
@@ -174,7 +172,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         app.show_balance = !app.show_balance
                     }
                     (KeyCode::Char('m'), _) => app.show_credit_card = !app.show_credit_card,
-                    (KeyCode::Char('n'), _) => app.mask_personal_info = !app.mask_personal_info,
                     // Handle input in TransferModal
                     (_, Some(&View::TransferModal)) => {
                         match key.code {

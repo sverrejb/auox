@@ -2,8 +2,6 @@
 
 A terminal-based banking application (currently) for SpareBank1, written in Rust.
 
-![Demo](demo.gif)
-
 ## Features
 
 - 💳 **Account Management** - View all your accounts, including credit cards
