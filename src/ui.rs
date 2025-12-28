@@ -76,19 +76,54 @@ fn draw_account_view(
     let rows: Vec<Row> = app
         .accounts
         .iter()
-        .filter(|acc| app.show_credit_card || acc.type_field != "CREDITCARD")
-        .map(|acc| {
+        .enumerate()
+        .filter(|(_, acc)| app.show_credit_card || acc.type_field != "CREDITCARD")
+        .map(|(idx, acc)| {
             let balance = if app.show_balance {
-                format!("{:.2}", acc.balance)
+                if app.mask_personal_info {
+                    // Generate placeholder balance based on index
+                    let placeholder_amounts = ["12,345.67", "5,432.10", "89,012.34", "23,456.78", "67,890.12"];
+                    placeholder_amounts[idx % placeholder_amounts.len()].to_string()
+                } else {
+                    format!("{:.2}", acc.balance)
+                }
             } else {
                 String::new()
             };
 
+            let account_name = if app.mask_personal_info {
+                format!("Account {}", idx + 1)
+            } else {
+                acc.name.to_string()
+            };
+
+            let account_number = if app.mask_personal_info {
+                // Generate placeholder account number based on index
+                let placeholder_numbers = [
+                    "1234 56 78901",
+                    "2345 67 89012",
+                    "3456 78 90123",
+                    "4567 89 01234",
+                    "5678 90 12345",
+                ];
+                placeholder_numbers[idx % placeholder_numbers.len()].to_string()
+            } else {
+                acc.account_number.clone()
+            };
+
+            let owner_name = if app.mask_personal_info {
+                // Generate placeholder owner name based on index
+                let letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                format!("Person {}", letters[idx % letters.len()])
+            } else {
+                acc.owner.as_ref().map(|o| o.name.clone()).unwrap_or_else(|| "N/A".to_string())
+            };
+
             Row::new(vec![
-                Cell::from(acc.name.as_str()),
+                Cell::from(account_name),
                 Cell::from(balance),
-                Cell::from(acc.account_number.as_str()),
-                Cell::from(acc.owner.as_ref().map(|o| o.name.as_str()).unwrap_or("N/A")),
+                Cell::from(account_number),
+                Cell::from(owner_name),
             ])
         })
         .collect();
@@ -117,7 +152,7 @@ fn draw_account_view(
 
     // Help bar with commands
     let help =
-        help_bar("Commands: [Ctrl+C] Quit | [esc] Back | [b] Toggle Balance | [↑/↓] Navigate");
+        help_bar("Commands: [Ctrl+C] Quit | [esc] Back | [b] Balance | [↑/↓] Navigate");
     frame.render_widget(help, chunks[1]);
 }
 
@@ -170,14 +205,24 @@ fn draw_transfer_modal(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Re
 
     let from_name = app
         .from_account
-        .and_then(|idx| app.accounts.get(idx))
-        .map(|acc| acc.name.as_str())
-        .unwrap_or("N/A");
+        .map(|idx| {
+            if app.mask_personal_info {
+                format!("Account {}", idx + 1)
+            } else {
+                app.accounts.get(idx).map(|acc| acc.name.clone()).unwrap_or_else(|| "N/A".to_string())
+            }
+        })
+        .unwrap_or_else(|| "N/A".to_string());
     let to_name = app
         .to_account
-        .and_then(|idx| app.accounts.get(idx))
-        .map(|acc| acc.name.as_str())
-        .unwrap_or("N/A");
+        .map(|idx| {
+            if app.mask_personal_info {
+                format!("Account {}", idx + 1)
+            } else {
+                app.accounts.get(idx).map(|acc| acc.name.clone()).unwrap_or_else(|| "N/A".to_string())
+            }
+        })
+        .unwrap_or_else(|| "N/A".to_string());
 
     let from_label = Paragraph::new(format!("From: {}", from_name));
     let to_label = Paragraph::new(format!("To: {}", to_name));
@@ -252,17 +297,42 @@ fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area:
     let rows: Vec<Row> = app
         .transactions
         .iter()
-        .map(|tx| {
+        .enumerate()
+        .map(|(idx, tx)| {
             // Format date from Unix timestamp (milliseconds)
             let date_str = format_timestamp(tx.date);
 
             // Use cleaned_description if available, otherwise description
-            let desc = tx
-                .cleaned_description
-                .as_ref()
-                .or(tx.description.as_ref())
-                .map(|s| s.as_str())
-                .unwrap_or("N/A");
+            let desc = if app.mask_personal_info {
+                // Creative and funny placeholder descriptions
+                let placeholders = [
+                    "Coffee that was definitely necessary",
+                    "Impulse buy (no regrets)",
+                    "Groceries (mostly snacks)",
+                    "That thing you forgot about",
+                    "Mystery purchase",
+                    "Treating yourself",
+                    "Adulting expenses",
+                    "Future regret fund",
+                    "Self-care (retail therapy)",
+                    "Subscription you forgot to cancel",
+                    "Emergency pizza delivery",
+                    "Investment in happiness",
+                    "Bills, bills, bills",
+                    "Totally necessary purchase",
+                    "Supporting local economy",
+                    "Tax-deductible maybe?",
+                    "Living your best life",
+                    "Oops, bought it again",
+                ];
+                placeholders[idx % placeholders.len()]
+            } else {
+                tx.cleaned_description
+                    .as_ref()
+                    .or(tx.description.as_ref())
+                    .map(|s| s.as_str())
+                    .unwrap_or("N/A")
+            };
 
             // Format amount with currency
             let amount_str = format!("{:.2} {}", tx.amount, tx.currency_code);
