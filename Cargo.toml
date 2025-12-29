@@ -3,8 +3,8 @@ name = "auox"
 version = "0.0.1"
 edition = "2024"
 license = "MIT"
-authors = ["Sverre Johansen Bjørke <sverrejb@users.noreply.github.com>"]
-description = "A terminal-based banking application for SpareBank1"
+authors = ["Sverre Johann Bjørke <sverrejb@gmail.com>"]
+description = "A terminal-based banking application"
 repository = "https://github.com/sverrejb/auox"
 
 [dependencies]
