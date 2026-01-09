@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     set_up_panic_hook();
 
     let config = fileio::get_config_file();
-    auth::auth(config.client_id, config.client_secret);
+    auth::auth(config.client_id, config.client_secret, config.financial_institution);
 
     // Setup terminal
     enable_raw_mode()?;

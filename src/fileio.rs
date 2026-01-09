@@ -35,6 +35,7 @@ fn config_file_path() -> Option<PathBuf> {
 pub struct AppConfig {
     pub client_id: String,
     pub client_secret: String,
+    pub financial_institution: String,
 }
 
 pub fn get_config_file() -> AppConfig {
@@ -106,6 +107,10 @@ fn create_config_template(conf_path: &PathBuf) {
 
 client_id = "your-client-id-here"
 client_secret = "your-client-secret-here"
+
+# Your financial institution ID
+# Examples: fid-smn (SpareBank 1 Midt-Norge), fid-snn (SpareBank 1 SR-Bank), etc.
+financial_institution = "fid-smn"
 "#;
     fs::write(conf_path, template).expect("Failed to create config.toml template");
 

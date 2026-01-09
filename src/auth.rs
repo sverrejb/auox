@@ -10,7 +10,7 @@ use crate::api;
 use crate::fileio::{read_access_token_file, save_token_data_file};
 use crate::models::TokenData;
 
-pub fn auth(client_id: String, client_secret: String) {
+pub fn auth(client_id: String, client_secret: String, financial_institution: String) {
     // 1: Check if access token present and valid
 
     if let Some(token_data) = read_access_token_file() {
@@ -31,7 +31,7 @@ pub fn auth(client_id: String, client_secret: String) {
 
     // 3: If refresh failed: Start auth flow with get code, then get access token.
     debug!("Token refresh failed, starting full OAuth flow...");
-    let code = get_code(&client_id);
+    let code = get_code(&client_id, &financial_institution);
     if let Ok(token_data) = get_access_token(&code, &client_id, &client_secret) {
         save_token_data_file(&token_data);
         debug!("Access token obtained and saved successfully");
@@ -40,7 +40,7 @@ pub fn auth(client_id: String, client_secret: String) {
     }
 }
 
-fn get_code(client_id: &str) -> String {
+fn get_code(client_id: &str, financial_institution: &str) -> String {
     let port = 8321;
     let redirect_uri = format!("http://localhost:{port}");
 
@@ -71,9 +71,10 @@ fn get_code(client_id: &str) -> String {
 
     // Open browser
     let auth_url = format!(
-        "https://api.sparebank1.no/oauth/authorize?client_id={}&state=123&redirect_uri={}&finInst=fid-smn&response_type=code",
+        "https://api.sparebank1.no/oauth/authorize?client_id={}&state=123&redirect_uri={}&finInst={}&response_type=code",
         client_id,
-        encode(&redirect_uri)
+        encode(&redirect_uri),
+        financial_institution
     );
     open::that(&auth_url).unwrap();
 

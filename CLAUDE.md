@@ -46,17 +46,18 @@ The application implements a three-tiered OAuth authentication strategy in `src/
    - Saves new token data to `auth.json` on success
 3. **Full OAuth Flow**: If refresh fails, initiates full OAuth flow with SpareBank 1's API:
    - Spawns local HTTP server on port 8321 to receive OAuth callback
-   - Opens browser to SpareBank 1's authorization endpoint with `finInst=fid-smn` parameter
+   - Opens browser to SpareBank 1's authorization endpoint with `finInst` parameter from config
    - Waits for authorization code via redirect
-   - Exchanges code for access token (not yet implemented - see `get_access_token()` todo)
+   - Exchanges code for access token
 
 ### File Management (`src/fileio.rs`)
 - **Config file location**: `~/.config/auox/config.toml` (on macOS/Linux) or equivalent platform directory
 - **Token file location**: `~/.local/share/auox/auth.json` (on Linux) or equivalent platform data directory
-- Creates directories automatically if they don't exist
+- Creates directories and config template automatically on first run if they don't exist
 - **Required config fields**:
   - `client_id`: OAuth client ID for SpareBank 1 API
   - `client_secret`: OAuth client secret for SpareBank 1 API
+  - `financial_institution`: Financial institution ID (e.g., `fid-smn` for SpareBank 1 Midt-Norge)
 - **Token file structure** (`auth.json`):
   - `access_token`: Current access token
   - `expires_in`: Access token expiry time (seconds)
@@ -155,7 +156,7 @@ The application is functional with core features implemented:
 ### API Integration
 - Base URL: `https://api.sparebank1.no`
 - OAuth endpoint: `/oauth/authorize`
-- Financial institution parameter: `finInst=fid-smn` (SpareBank 1 Midt-Norge)
+- Financial institution parameter: `finInst` (configurable, e.g., `fid-smn` for SpareBank 1 Midt-Norge)
 - Redirect URI: `http://localhost:8321`
 - **API Endpoints**:
   - `/personal/banking/accounts` - GET account list

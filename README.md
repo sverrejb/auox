@@ -10,7 +10,7 @@ A terminal-based banking application (currently) for SpareBank1, written in Rust
 - 📊 **Transaction History** - Browse your transaction history with color-coded amounts
 - 💸 **Transfers** - Move money between accounts.
 - 🎨 **Modern TUI** - Okay looking terminal interface with animations and effects
-- ⚡ **Fast & Lightweight** - Built with Rust for speed and efficiency (or because I really like Rust 🤷‍♂️)
+- ⚡ **Fast & Lightweight** - Built with Rust for speed and efficiency (or because I really like Rust, realisticly it makes no difference here 🤷‍♂️)
 
 ## Prerequisites
 
@@ -30,7 +30,13 @@ cargo build --release
 
 # Run the application
 cargo run --release
+
+# Install binary
+cargo install --path .
 ```
+
+## API access:
+To use with SpareBank 1's APIs you need to create a client on their developer portal at: [https://developer.sparebank1.no/#/](https://developer.sparebank1.no/#/)
 
 ## Configuration
 
@@ -43,13 +49,17 @@ Edit the config file and add your SpareBank 1 API credentials:
 ```toml
 client_id = "your-client-id"
 client_secret = "your-client-secret"
+
+# Your financial institution ID
+# Examples: fid-smn (SpareBank 1 Midt-Norge), fid-snn (SpareBank 1 SR-Bank), etc.
+financial_institution = "fid-smn"
 ```
 
 ## Usage
 
 ### First Launch
 
-1. Run `cargo run`.
+1. Run `cargo run` or `auox` if you installed the binary.
 2. Your browser will open for OAuth authentication
 3. Log in to SpareBank 1 and authorize the application
 4. The app will save your tokens and start automatically
