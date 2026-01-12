@@ -92,7 +92,7 @@ fn draw_account_view(
             };
 
             let account_name = if app.mask_personal_info {
-                format!("Account {}", idx + 1)
+                format!("Konto {}", idx + 1)
             } else {
                 acc.name.to_string()
             };
@@ -207,7 +207,7 @@ fn draw_transfer_modal(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Re
         .from_account
         .map(|idx| {
             if app.mask_personal_info {
-                format!("Account {}", idx + 1)
+                format!("Konto {}", idx + 1)
             } else {
                 app.accounts.get(idx).map(|acc| acc.name.clone()).unwrap_or_else(|| "N/A".to_string())
             }
@@ -217,7 +217,7 @@ fn draw_transfer_modal(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Re
         .to_account
         .map(|idx| {
             if app.mask_personal_info {
-                format!("Account {}", idx + 1)
+                format!("Konto {}", idx + 1)
             } else {
                 app.accounts.get(idx).map(|acc| acc.name.clone()).unwrap_or_else(|| "N/A".to_string())
             }
@@ -306,24 +306,24 @@ fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area:
             let desc = if app.mask_personal_info {
                 // Creative and funny placeholder descriptions
                 let placeholders = [
-                    "Coffee that was definitely necessary",
-                    "Impulse buy (no regrets)",
-                    "Groceries (mostly snacks)",
-                    "That thing you forgot about",
-                    "Mystery purchase",
-                    "Treating yourself",
-                    "Adulting expenses",
-                    "Future regret fund",
-                    "Self-care (retail therapy)",
-                    "Subscription you forgot to cancel",
-                    "Emergency pizza delivery",
-                    "Investment in happiness",
-                    "Bills, bills, bills",
-                    "Totally necessary purchase",
-                    "Supporting local economy",
-                    "Tax-deductible maybe?",
-                    "Living your best life",
-                    "Oops, bought it again",
+                    "Kaffe som var absolutt nødvendig",
+                    "Impulskjøp (ingen anger)",
+                    "Dagligvarer (mest snacks)",
+                    "Den tingen du glemte",
+                    "Mystisk kjøp",
+                    "Kos deg selv",
+                    "Voksenliv-utgifter",
+                    "Fremtidig angerfond",
+                    "Egenomsorg (handleterapi)",
+                    "Abonnement du glemte å si opp",
+                    "Pizza-nødlevering",
+                    "Investering i lykke",
+                    "Regninger, regninger, regninger",
+                    "Helt nødvendig kjøp",
+                    "Støtter lokal økonomi",
+                    "Kanskje fradragsberettiget?",
+                    "Lever ditt beste liv",
+                    "Oops, kjøpte det igjen",
                 ];
                 placeholders[idx % placeholders.len()]
             } else {
