@@ -51,8 +51,14 @@ The application implements a three-tiered OAuth authentication strategy in `src/
    - Exchanges code for access token
 
 ### File Management (`src/fileio.rs`)
-- **Config file location**: `~/.config/auox/config.toml` (on macOS/Linux) or equivalent platform directory
-- **Token file location**: `~/.local/share/auox/auth.json` (on Linux) or equivalent platform data directory
+- **Config file location**:
+  - macOS: `~/Library/Application Support/auox/config.toml`
+  - Linux: `~/.config/auox/config.toml`
+  - Windows: `%APPDATA%\auox\config.toml`
+- **Token file location**:
+  - macOS: `~/Library/Application Support/auox/auth.json`
+  - Linux: `~/.local/share/auox/auth.json`
+  - Windows: `%APPDATA%\auox\auth.json`
 - Creates directories and config template automatically on first run if they don't exist
 - **Required config fields**:
   - `client_id`: OAuth client ID for SpareBank 1 API

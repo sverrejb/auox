@@ -41,7 +41,8 @@ To use with SpareBank 1's APIs you need to create a client on their developer po
 ## Configuration
 
 On first run, Auox will create a config file at:
-- **macOS/Linux**: `~/.config/auox/config.toml`
+- **macOS**: `~/Library/Application Support/auox/config.toml`
+- **Linux**: `~/.config/auox/config.toml`
 - **Windows**: `%APPDATA%\auox\config.toml`
 
 Edit the config file and add your SpareBank 1 API credentials:
