@@ -28,7 +28,6 @@ pub fn draw(
     q_progress: Option<f32>,
 ) {
     let _ = terminal.draw(|frame| {
-        // Layout with table and help bar
         let frame_area = frame.area();
 
         match app.view_stack.last() {
@@ -155,7 +154,6 @@ fn draw_transfer_modal(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Re
     frame.render_widget(Clear, clear_area);
     frame.render_widget(block.clone(), block_area);
 
-    // Get inner area for content
     let inner_area = block.inner(block_area);
 
     // Create vertical layout: first row for To/From, second row for Amount input, third row for Message input
@@ -255,10 +253,8 @@ fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area:
         .transactions
         .iter()
         .map(|tx| {
-            // Format date from Unix timestamp (milliseconds)
             let date_str = format_timestamp(tx.date);
 
-            // Use cleaned_description if available, otherwise description
             let desc = tx
                 .cleaned_description
                 .as_ref()
@@ -266,10 +262,8 @@ fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area:
                 .map(|s| s.as_str())
                 .unwrap_or("N/A");
 
-            // Format amount with currency
             let amount_str = format!("{:.2} {}", tx.amount, tx.currency_code);
 
-            // Determine color based on amount (positive = green, negative = red)
             let amount_cell = if tx.amount >= 0.0 {
                 Cell::from(amount_str).style(Style::default().fg(Color::Green))
             } else {

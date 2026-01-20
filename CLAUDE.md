@@ -136,7 +136,8 @@ Defines SpareBank 1 API response structures:
 ## Development Notes
 
 ### Code Style
-- **Comments**: Comments should always explain *why*, never *what*. Keep them sparse - only where the code is not self-explaining.
+- **Comments**: Comments should primarily explain *why*, not *what*. Keep them sparse - only where the code is not self-explaining.
+  - Exception: *What* comments are acceptable for labeling sections (e.g., UI layout sections, distinct code block regions) to help navigate the code.
 
 ### Current State
 The application is functional with core features implemented:

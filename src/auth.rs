@@ -11,8 +11,6 @@ use crate::fileio::{read_access_token_file, save_token_data_file};
 use crate::models::TokenData;
 
 pub fn auth(client_id: String, client_secret: String, financial_institution: String) {
-    // 1: Check if access token present and valid
-
     if let Some(token_data) = read_access_token_file() {
         if is_token_valid() {
             return;
@@ -29,7 +27,6 @@ pub fn auth(client_id: String, client_secret: String, financial_institution: Str
         }
     }
 
-    // 3: If refresh failed: Start auth flow with get code, then get access token.
     debug!("Token refresh failed, starting full OAuth flow...");
     let code = get_code(&client_id, &financial_institution);
     if let Ok(token_data) = get_access_token(&code, &client_id, &client_secret) {
@@ -46,10 +43,8 @@ fn get_code(client_id: &str, financial_institution: &str) -> String {
 
     let server = Server::http(format!("127.0.0.1:{port}")).unwrap();
 
-    // Channel to send the code from the server thread
     let (tx, rx) = mpsc::channel();
 
-    // Spawn server thread
     std::thread::spawn(move || {
         for request in server.incoming_requests() {
             let query = request.url().split('?').nth(1).unwrap_or("");
@@ -62,14 +57,12 @@ fn get_code(client_id: &str, financial_institution: &str) -> String {
                     Response::from_string("✅ Authentication complete! You can close this tab.");
                 request.respond(response).unwrap();
 
-                // Send code to main thread
                 tx.send(code).unwrap();
                 break; // exit server loop
             }
         }
     });
 
-    // Open browser
     let auth_url = format!(
         "https://api.sparebank1.no/oauth/authorize?client_id={}&state=123&redirect_uri={}&finInst={}&response_type=code",
         client_id,
@@ -80,7 +73,6 @@ fn get_code(client_id: &str, financial_institution: &str) -> String {
 
     println!("Waiting for OAuth callback on {redirect_uri}...");
 
-    // Block and wait for the code from server thread
     let code = rx.recv().unwrap();
     println!("Code: {}", code);
     code

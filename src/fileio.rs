@@ -22,10 +22,8 @@ fn config_file_path() -> Option<PathBuf> {
 
     debug!("App config dir: {}", dir.display());
 
-    // Create the directory if needed
     std::fs::create_dir_all(&dir).expect("Failed to create config dir");
 
-    // Then use it for your files
     let config_path = dir.join("config.toml");
     debug!("Config file path: {}", config_path.display());
     Some(config_path)
@@ -88,7 +86,6 @@ pub fn save_token_data_file(token_data: &TokenData) {
         }
     };
 
-    // Create the directory if needed
     std::fs::create_dir_all(&dir).expect("Failed to create data dir");
 
     let token_path = dir.join("auth.json");

@@ -82,7 +82,6 @@ pub fn hello_world() -> Result<Response, Error> {
 }
 
 pub fn perform_transfer(app: &mut AppState) {
-    // Get amount and validate
     let amount = app.amount_input.value().trim();
     if amount.is_empty() {
         debug!("Amount is empty, not performing transfer");
@@ -105,7 +104,6 @@ pub fn perform_transfer(app: &mut AppState) {
         }
     };
 
-    // Check if transferring to a credit card
     let is_credit_card = to_account.type_field == "CREDITCARD";
 
     let response = if is_credit_card {
@@ -125,7 +123,6 @@ pub fn perform_transfer(app: &mut AppState) {
         debug!("Performing credit card transfer: {:?}", transfer);
         create_credit_card_transfer(transfer)
     } else {
-        // Regular account transfer
         let message = app.message_input.value().trim();
         let message = if message.is_empty() {
             None
@@ -146,7 +143,6 @@ pub fn perform_transfer(app: &mut AppState) {
         create_transfer(transfer)
     };
 
-    // Check for errors
     if response.errors.is_empty() {
         debug!("Transfer successful! Payment ID: {:?}", response.payment_id);
 
@@ -156,11 +152,9 @@ pub fn perform_transfer(app: &mut AppState) {
         app.from_account = None;
         app.to_account = None;
 
-        // Navigate back to accounts view
         app.view_stack.clear();
         app.view_stack.push(View::Accounts);
 
-        // Refresh accounts to show updated balances
         app.accounts = crate::get_accounts();
     } else {
         debug!("Transfer failed with {} error(s):", response.errors.len());
@@ -190,7 +184,6 @@ pub fn create_transfer(transfer: CreateTransferDTO) -> TransferResponse {
                 .text()
                 .expect("Failed to get transfer response text");
 
-            // Check if the HTTP request was successful
             if !status.is_success() {
                 panic!(
                     "Transfer API returned HTTP {}: {}",
@@ -223,7 +216,6 @@ pub fn create_credit_card_transfer(transfer: TransferToCreditCardDTO) -> Transfe
                 .text()
                 .expect("Failed to get credit card transfer response text");
 
-            // Check if the HTTP request was successful
             if !status.is_success() {
                 panic!(
                     "Credit card transfer API returned HTTP {}: {}",
