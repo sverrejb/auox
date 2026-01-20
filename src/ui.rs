@@ -25,6 +25,7 @@ pub fn draw(
     terminal: &mut Terminal<CrosstermBackend<&mut Stdout>>,
     effects: &mut EffectManager<()>,
     elapsed: Duration,
+    q_progress: Option<f32>,
 ) {
     let _ = terminal.draw(|frame| {
         // Layout with table and help bar
@@ -32,21 +33,21 @@ pub fn draw(
 
         match app.view_stack.last() {
             Some(&View::Accounts) => {
-                draw_account_view(app, frame, frame_area, "Accounts", MONEYBAG);
+                draw_account_view(app, frame, frame_area, "Accounts", MONEYBAG, q_progress);
             }
             Some(&View::Menu) => {
                 //we still draw the account view in order to keep it in the background of the menu
-                draw_account_view(app, frame, frame_area, "Accounts", MONEYBAG);
+                draw_account_view(app, frame, frame_area, "Accounts", MONEYBAG, q_progress);
                 draw_menu(app, frame, frame_area);
             }
             Some(&View::Transactions) => {
-                draw_transactions_view(app, frame, frame_area);
+                draw_transactions_view(app, frame, frame_area, q_progress);
             }
             Some(&View::TransferSelect) => {
-                draw_account_view(app, frame, frame_area, "Select target account", ARROW);
+                draw_account_view(app, frame, frame_area, "Select target account", ARROW, q_progress);
             }
             Some(&View::TransferModal) => {
-                draw_account_view(app, frame, frame_area, "Select target account", ARROW);
+                draw_account_view(app, frame, frame_area, "Select target account", ARROW, q_progress);
                 draw_transfer_modal(app, frame, frame_area);
             }
             None => {}
@@ -62,6 +63,7 @@ fn draw_account_view(
     frame_area: Rect,
     title: &str,
     icon: &str,
+    q_progress: Option<f32>,
 ) {
     let chunks = Layout::vertical([Constraint::Min(0), Constraint::Length(3)]).split(frame_area);
 
@@ -117,7 +119,7 @@ fn draw_account_view(
 
     // Help bar with commands
     let help =
-        help_bar("Commands: [Ctrl+C] Quit | [esc] Back | [b] Toggle Balance | [↑/↓] Navigate");
+        help_bar("Commands: [Ctrl+C] Quit | [esc] Back | [b] Toggle Balance | [↑/↓] Navigate", q_progress);
     frame.render_widget(help, chunks[1]);
 }
 
@@ -237,7 +239,7 @@ fn draw_transfer_modal(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Re
     frame.render_widget(message_widget, message_chunks[1]);
 }
 
-fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect) {
+fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area: Rect, q_progress: Option<f32>) {
     // Fullscreen layout for transactions
     let chunks = Layout::vertical([Constraint::Min(0), Constraint::Length(3)]).split(frame_area);
 
@@ -283,7 +285,6 @@ fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area:
         })
         .collect();
 
-    // Define column widths
     let widths = [
         Constraint::Percentage(15), // Date
         Constraint::Percentage(45), // Description
@@ -291,7 +292,6 @@ fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area:
         Constraint::Percentage(20), // Type
     ];
 
-    // Create the Table widget
     let table = Table::new(rows, widths)
         .header(header)
         .block(Block::default().borders(Borders::ALL).title("Transactions"))
@@ -306,12 +306,10 @@ fn draw_transactions_view(app: &mut AppState, frame: &mut Frame<'_>, frame_area:
     frame.render_widget(Clear, frame_area);
     frame.render_stateful_widget(table, chunks[0], &mut app.transaction_index);
 
-    // Help bar for transactions view
-    let help = help_bar("Commands: [Ctrl+C] Quit | [esc] Back | [↑/↓] Navigate");
+    let help = help_bar("Commands: [Ctrl+C] Quit | [esc] Back | [↑/↓] Navigate", q_progress);
     frame.render_widget(help, chunks[1]);
 }
 
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
 fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
     let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
     let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
@@ -329,24 +327,29 @@ fn menu_text<'a>(option: &'a str, shortcut: &'a str) -> ratatui::prelude::Line<'
     ])
 }
 
-/// Creates a styled help bar widget with the given text
-fn help_bar(text: &str) -> Paragraph<'_> {
-    Paragraph::new(text)
+
+fn help_bar(text: &str, q_progress: Option<f32>) -> Paragraph<'_> {
+    let display_text = if let Some(progress) = q_progress {
+        let bar_width = 20;
+        let filled = (bar_width as f32 * progress) as usize;
+        let bar: String = "█".repeat(filled) + &"░".repeat(bar_width - filled);
+        format!("Hold Q to quit: [{}] {:.1}s / 1.0s", bar, progress * 1.0)
+    } else {
+        text.to_string()
+    };
+
+    Paragraph::new(display_text)
         .block(Block::default().borders(Borders::ALL))
         .style(Style::default().fg(Color::Cyan))
 }
 
-/// Formats a Unix timestamp (in milliseconds) to a readable date string
 fn format_timestamp(timestamp_ms: i64) -> String {
     use chrono::{DateTime, Local};
 
-    // Convert milliseconds to seconds
     let timestamp_secs = timestamp_ms / 1000;
 
-    // Create DateTime from timestamp
     match DateTime::from_timestamp(timestamp_secs, 0) {
         Some(dt) => {
-            // Convert to local time and format
             let local: DateTime<Local> = dt.into();
             local.format("%Y-%m-%d").to_string()
         }

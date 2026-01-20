@@ -135,6 +135,9 @@ Defines SpareBank 1 API response structures:
 
 ## Development Notes
 
+### Code Style
+- **Comments**: Comments should always explain *why*, never *what*. Keep them sparse - only where the code is not self-explaining.
+
 ### Current State
 The application is functional with core features implemented:
 - ✅ OAuth authentication with token refresh

@@ -59,6 +59,59 @@ pub enum TransferInput {
     Message,
 }
 
+struct QuitHoldState {
+    hold_start: Option<Instant>,
+    last_event_time: Option<Instant>,
+    hold_duration: Duration,
+}
+
+impl QuitHoldState {
+    fn new(hold_duration: Duration) -> Self {
+        Self {
+            hold_start: None,
+            last_event_time: None,
+            hold_duration,
+        }
+    }
+
+    fn on_q_pressed(&mut self) {
+        let now = Instant::now();
+
+        if self.hold_start.is_none() {
+            self.hold_start = Some(now);
+        }
+
+        self.last_event_time = Some(now);
+    }
+
+    fn check_should_quit(&mut self) -> bool {
+        // 600ms threshold accounts for typical key repeat delay (250-500ms)
+        if let Some(last_q) = self.last_event_time
+            && last_q.elapsed() > Duration::from_millis(600) {
+                self.reset();
+                return false;
+            }
+
+        if let Some(start) = self.hold_start
+            && start.elapsed() >= self.hold_duration {
+                return true;
+            }
+
+        false
+    }
+
+    fn progress(&self) -> Option<f32> {
+        self.hold_start.map(|start| {
+            (start.elapsed().as_secs_f32() / self.hold_duration.as_secs_f32()).min(1.0)
+        })
+    }
+
+    fn reset(&mut self) {
+        self.hold_start = None;
+        self.last_event_time = None;
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     // Panic hook restores terminal to working state on panic before exiting.
@@ -84,7 +137,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut exit_start_time: Option<Instant> = None;
     let exit_duration = Duration::from_millis(500);
 
-    // State
+    let mut quit_hold = QuitHoldState::new(Duration::from_secs(1));
+
     let mut app = AppState {
         account_index: TableState::new().with_selected(0),
         menu_index: ListState::default().with_selected(Some(0)),
@@ -105,9 +159,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let elapsed = last_frame.elapsed();
         last_frame = Instant::now();
 
-        ui::draw(&mut app, &mut terminal, &mut effects, elapsed);
+        let q_progress = quit_hold.progress();
 
-        // Handle input
+        ui::draw(&mut app, &mut terminal, &mut effects, elapsed, q_progress);
+
         if event::poll(std::time::Duration::from_millis(100))?
             && let Event::Key(key) = event::read()? {
                 match (key.code, app.view_stack.last()) {
@@ -221,11 +276,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             exit_start_time = Some(Instant::now());
                         }
                     }
+                    (KeyCode::Char('q'), Some(view)) if !matches!(view, View::TransferModal) && !exiting => {
+                        quit_hold.on_q_pressed();
+                    }
                     _ => {}
                 }
             }
 
-        // If exiting and dissolve effect is done, break the loop
+        if quit_hold.check_should_quit() && !exiting {
+            effects.add_effect(fx::dissolve((500, Interpolation::QuintIn)));
+            exiting = true;
+            exit_start_time = Some(Instant::now());
+            quit_hold.reset();
+        }
+
         if exiting
             && let Some(start_time) = exit_start_time
                 && start_time.elapsed() >= exit_duration {
